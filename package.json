@@ -1,0 +1,58 @@
+{
+  "name": "code-companion",
+  "displayName": "Code Companion",
+  "description": "Code-aware AI assistant for debugging and understanding code",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeCompanion.askAboutCode",
+        "title": "Code Companion: Ask About Selected Code"
+      },
+      {
+        "command": "codeCompanion.indexFile",
+        "title": "Code Companion: Index Current File"
+      },
+      {
+        "command": "codeCompanion.indexWorkspace",
+        "title": "Code Companion: Index Entire Workspace"
+      }
+    ],
+    "configuration": {
+      "title": "AI Debugging Copilot",
+      "properties": {
+        "codeCompanion.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your OpenAI API key"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "chromadb": "^1.8.1",
+    "openai": "^4.28.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.110.0",
+    "@types/node": "22.x",
+    "typescript": "^5.9.3",
+    "@vscode/vsce": "^2.23.0"
+  }
+}
