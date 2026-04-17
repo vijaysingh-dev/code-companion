@@ -1,82 +1,132 @@
-# AI Debugging Copilot
+# Code Companion
 
-A VS Code extension that brings code-aware AI assistance directly into your editor.
+A VS Code extension that provides code-aware AI assistance for debugging, understanding, and improving code directly in your editor.
+
+## Features
+
+- **Ask About Code**: Select code snippets and ask questions to get AI-powered explanations and insights.
+- **Code Indexing**: Embed and index your codebase for context-aware responses.
+- **Configurable**: Use a JSON config file to set up embedding and inference services.
 
 ## Setup
 
-### 1. Start Chroma
-
-```bash
-pip install chromadb
-chroma run --path ./chroma-data
-```
-
-### 2. Install dependencies
+### 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Add your OpenAI API key
+### 2. Start ChromaDB (Vector Database)
 
-In `.vscode/settings.json`:
+Code Companion uses ChromaDB for storing and retrieving code embeddings. Run ChromaDB locally using Docker:
+
+```bash
+pip install chromadb
+docker run -d --name chromadb -p 8000:8000 -v chroma_data:/chroma/chroma -e IS_PERSISTENT=TRUE -e PERSIST_DIRECTORY=/chroma/chroma chromadb/chroma
+```
+
+This starts ChromaDB on port 8000 with persistent storage.
+
+### 3. Configure the Extension
+
+Create a configuration file named `code-companion.config.json` in your workspace root (or specify a custom path in VS Code settings).
+
+Example configuration:
 
 ```json
 {
-  "codeCompanion.openaiApiKey": "sk-your-key-here"
+  "embedding": {
+    "provider": "openai",
+    "apiKey": "sk-your-openai-api-key",
+    "model": "text-embedding-3-small"
+  },
+  "inference": {
+    "provider": "openai",
+    "apiKey": "sk-your-openai-api-key",
+    "model": "gpt-4o"
+  },
+  "chroma": {
+    "host": "localhost",
+    "port": 8000
+  }
 }
 ```
 
-### 4. Compile and run
+- **embedding**: Configure the embedding service (OpenAI, Anthropic, etc.).
+- **inference**: Configure the AI model for answering questions.
+- **chroma**: Connection details for ChromaDB.
 
-Press `F5` in VS Code to launch the Extension Development Host.
+To open or create the config file:
 
----
+- Use the command `Code Companion: Open Config` from the Command Palette.
+
+Alternatively, set the config file path in VS Code settings:
+
+- Go to Settings → Extensions → Code Companion → Config File Path.
+- Enter the absolute path to your `code-companion.config.json`.
+
+### 4. Compile and Run
+
+```bash
+npm run compile
+```
+
+Press `F5` in VS Code to launch the Extension Development Host and test the extension.
 
 ## Commands
 
-| Command                                   | What it does                              |
-| ----------------------------------------- | ----------------------------------------- |
-| `Code Companion: Ask About Selected Code` | Select code → ask a question → get answer |
-| `Code Companion: Index Current File`      | Embed the open file into Chroma           |
-| `Code Companion: Index Entire Workspace`  | Embed all code files in the workspace     |
+| Command                                   | Description                                   |
+| ----------------------------------------- | --------------------------------------------- |
+| `Code Companion: Ask About Selected Code` | Select code and ask questions for AI insights |
+| `Code Companion: Index Current File`      | Embed the currently open file into ChromaDB   |
+| `Code Companion: Index Entire Workspace`  | Embed all code files in the workspace         |
+| `Code Companion: Open Config`             | Open or create the configuration file         |
 
-Open Command Palette (`Ctrl+Shift+P`) and search for "Code Companion".
+Access these via Command Palette (`Ctrl+Shift+P`) by searching for "Code Companion".
 
----
+## Workflow
 
-## Flow
-
-```
-Select code → Ctrl+Shift+P → Ask About Selected Code
-                    ↓
-            Embed question + code
-                    ↓
-         Retrieve top-5 related chunks
-                    ↓
-              GPT-4o call
-                    ↓
-         Response shown in side panel
-```
-
----
+1. **Index Your Code**: Run `Index Entire Workspace` or `Index Current File` to embed your codebase.
+2. **Ask Questions**: Select code in the editor, right-click → "Code Companion: Ask About Selected Code", or use the command.
+3. **Attach More Context**: Optionally attach additional files or code snippets.
+4. **Get Response**: The AI analyzes the selected code plus relevant context from your indexed codebase and provides a response in a side panel.
 
 ## Project Structure
 
 ```
 src/
-├── extension.ts          # Entry point
-├── commands.ts           # Command registrations
-├── config.ts             # VS Code settings reader
+├── extension.ts          # Extension entry point
+├── commands.ts           # Command registrations and logic
+├── config/
+│   ├── configLoader.ts   # Configuration file handling
+│   └── types.ts          # Type definitions
 ├── context/
-│   └── contextBuilder.ts # Indexing + retrieval logic
+│   └── contextBuilder.ts # Code indexing and retrieval
 ├── services/
-│   ├── chromaService.ts  # Chroma vector DB client
-│   ├── embeddingService.ts # OpenAI embeddings
-│   └── llmService.ts     # GPT-4o prompt + call
+│   ├── chromaService.ts  # ChromaDB client
+│   ├── embeddingService.ts # Embedding generation
+│   └── inferenceService.ts # AI inference calls
 ├── ui/
-│   └── responsePanel.ts  # Webview response panel
+│   └── responsePanel.ts  # Response display panel
 └── utils/
-    ├── chunker.ts        # Code chunking logic
-    └── editorUtils.ts    # VS Code editor helpers
+    ├── chunker.ts        # Code chunking utilities
+    └── editorUtils.ts    # Editor interaction helpers
 ```
+
+## Dependencies
+
+- **ChromaDB**: Vector database for code embeddings.
+- **OpenAI/Anthropic SDKs**: For embeddings and inference.
+- **VS Code API**: For extension functionality.
+
+## Contributing
+
+1. Clone the repository.
+2. Install dependencies: `npm install`.
+3. Make changes.
+4. Compile: `npm run compile`.
+5. Test with `F5`.
+
+## License
+
+See LICENSE file.

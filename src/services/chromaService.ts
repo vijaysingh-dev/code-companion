@@ -20,9 +20,16 @@ export class ChromaService {
     });
   }
 
-  // Upsert code chunks with embeddings and source file metadata
+  // Upsert code chunks with embeddings and source file metadata.
+  // If the same file is inserted again, remove any existing chunks for that file path first.
   async upsert(chunks: string[], embeddings: number[][], filePath: string) {
-    const ids = chunks.map((_, i) => `${filePath}::chunk::${i}::${Date.now()}`);
+    await this.collection.delete({ where: { filePath } });
+
+    console.log("Chunks:", chunks);
+    console.log("Embeddings:", embeddings);
+    console.log("File path:", filePath);
+
+    const ids = chunks.map((_, i) => `${filePath}::chunk::${i}`);
     await this.collection.upsert({
       ids,
       embeddings,
