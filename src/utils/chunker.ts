@@ -1,5 +1,5 @@
-const CHUNK_SIZE = 60; // lines per chunk
-const OVERLAP = 10; // lines of overlap between adjacent chunks
+const CHUNK_SIZE = 60;
+const OVERLAP = 10;
 
 // Split source code into overlapping line-based chunks for embedding
 export function chunkCode(content: string): string[] {
@@ -11,9 +11,7 @@ export function chunkCode(content: string): string[] {
       .slice(i, i + CHUNK_SIZE)
       .join("\n")
       .trim();
-    if (chunk.length > 0) {
-      chunks.push(chunk);
-    }
+    if (chunk.length > 0) chunks.push(chunk);
   }
 
   return chunks;

@@ -1,10 +1,10 @@
 {
   "name": "code-companion",
   "displayName": "Code Companion",
-  "description": "Code-aware AI assistant for debugging and understanding code",
-  "version": "0.0.1",
+  "description": "Code-aware AI assistant for debugging, understanding, and improving code",
+  "version": "0.1.0",
   "engines": {
-    "vscode": "^1.110.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
@@ -26,33 +26,47 @@
       {
         "command": "codeCompanion.indexWorkspace",
         "title": "Code Companion: Index Entire Workspace"
+      },
+      {
+        "command": "codeCompanion.openConfig",
+        "title": "Code Companion: Open Config"
       }
     ],
     "configuration": {
-      "title": "AI Debugging Copilot",
+      "title": "Code Companion",
       "properties": {
-        "codeCompanion.openaiApiKey": {
+        "codeCompanion.configFilePath": {
           "type": "string",
           "default": "",
-          "description": "Your OpenAI API key"
+          "description": "Absolute path to your code-companion.config.json. Leave blank to use workspace root."
         }
       }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "codeCompanion.askAboutCode",
+          "when": "editorHasSelection",
+          "group": "codeCompanion@1"
+        }
+      ]
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "package": "vsce package"
   },
   "dependencies": {
-    "chromadb": "^1.8.1",
-    "openai": "^4.28.0"
+    "@anthropic-ai/sdk": "^0.85.0",
+    "@google/generative-ai": "^0.24.1",
+    "chromadb": "^3.4.3",
+    "openai": "^6.33.0"
   },
   "devDependencies": {
-    "@types/vscode": "^1.110.0",
-    "@types/node": "22.x",
-    "typescript": "^5.9.3",
-    "@vscode/vsce": "^2.23.0"
+    "@types/node": "^25.5.2",
+    "@types/vscode": "^1.115.0",
+    "@vscode/vsce": "^3.7.1",
+    "typescript": "^6.0.2"
   }
 }
