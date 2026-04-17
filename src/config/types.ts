@@ -10,11 +10,18 @@ export interface ModelConfig {
   apiKey: string;
 }
 
+// ─── ChromaDB configuration ──────────────────────────────────────────────────
+
+export interface ChromaConfig {
+  uri?: string; // Optional URI for ChromaDB server, defaults to localhost:8000
+}
+
 // ─── Top-level config file structure ─────────────────────────────────────────
 
 export interface CodeCompanionConfig {
   embedding: ModelConfig;
   inference: ModelConfig;
+  chroma?: ChromaConfig; // Optional ChromaDB configuration
 }
 
 // ─── Sane defaults written when user creates a new config file ────────────────
@@ -29,5 +36,8 @@ export const DEFAULT_CONFIG: CodeCompanionConfig = {
     provider: "openai",
     model: "gpt-4o",
     apiKey: "",
+  },
+  chroma: {
+    // URI is optional, defaults to localhost:8000
   },
 };

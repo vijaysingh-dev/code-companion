@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { CodeCompanionConfig, DEFAULT_CONFIG, Provider } from "./types";
 
-const CONFIG_FILENAME = "code-companion.config.json";
+const CONFIG_FILENAME = "config.json";
 const VALID_PROVIDERS: Provider[] = ["openai", "anthropic", "gemini"];
 
 // ─── Resolve config file path from VS Code setting or default location ────────
@@ -11,18 +11,22 @@ const VALID_PROVIDERS: Provider[] = ["openai", "anthropic", "gemini"];
 export function getConfigFilePath(): string {
   const setting = vscode.workspace
     .getConfiguration("codeCompanion")
-    .get<string>("configFilePath");
+    .get<string>("codeCompanionConfig");
 
   if (setting && setting.trim()) {
     return setting.trim();
   }
 
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (workspaceFolders?.length) {
-    return path.join(workspaceFolders[0].uri.fsPath, CONFIG_FILENAME);
+  // Use ~/.code-companion/ directory for config
+  const homeDir = process.env.HOME ?? require("os").homedir();
+  const configDir = path.join(homeDir, ".code-companion");
+
+  // Ensure the directory exists
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
   }
 
-  return path.join(process.env.HOME ?? "~", CONFIG_FILENAME);
+  return path.join(configDir, CONFIG_FILENAME);
 }
 
 // ─── Read and parse config, throwing descriptive errors on bad input ──────────

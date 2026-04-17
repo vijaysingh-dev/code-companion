@@ -6,8 +6,10 @@ export class ChromaService {
   private client: ChromaClient;
   private collection!: Collection;
 
-  constructor() {
-    this.client = new ChromaClient({ path: "http://localhost:8000" });
+  constructor(uri?: string) {
+    // Default to localhost:8000 if no URI provided
+    const chromaUri = uri || "http://localhost:8000";
+    this.client = new ChromaClient({ path: chromaUri });
   }
 
   // Connect to Chroma and get-or-create the persistent collection
