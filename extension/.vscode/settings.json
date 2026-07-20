@@ -1,0 +1,28 @@
+// Workspace settings for the VS Code extension (open the `extension/` folder).
+{
+  "files.exclude": {
+    "out": false // set to true to hide compiled JS
+  },
+  "search.exclude": {
+    "out": true
+  },
+  // tasks are provided as npm scripts, not auto-detected tsc tasks
+  "js/ts.tsc.autoDetect": "off",
+
+  "editor.formatOnSave": true,
+  "editor.rulers": [120],
+
+  "prettier.tabWidth": 2,
+  "prettier.printWidth": 120,
+  "[json][jsonc][yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html][css][javascript][javascriptreact][typescript][typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+
+  "eslint.useFlatConfig": true
+}
