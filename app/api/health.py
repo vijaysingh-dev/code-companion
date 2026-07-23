@@ -7,7 +7,7 @@ from app.models.schema import HealthResponse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["health"])
+router = APIRouter()
 
 
 @router.get("/health", response_model=HealthResponse)
