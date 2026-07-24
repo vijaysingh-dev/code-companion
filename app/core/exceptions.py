@@ -40,6 +40,16 @@ class ValidationError(CodeCompanionException):
         )
 
 
+class AuthenticationError(CodeCompanionException):
+    def __init__(self, message: str = "Authentication failed", details: dict[str, Any] | None = None) -> None:
+        super().__init__(
+            message=message,
+            error_code="UNAUTHORIZED",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            details=details,
+        )
+
+
 class LLMError(CodeCompanionException):
     def __init__(self, message: str = "LLM operation failed", details: dict[str, Any] | None = None) -> None:
         super().__init__(

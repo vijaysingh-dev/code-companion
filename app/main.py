@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.application import init_api_app
 from app.core.config import settings
+from app.core.constants import AppMode
 from app.core.logging import setup_logging
 from app.middleware.error_handler import setup_exception_handlers
 from app.middleware.logging import LoggingMiddleware
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_application() -> FastAPI:
-    setup_logging()
+    setup_logging(AppMode.APP)
 
     app = FastAPI(
         title=settings.APP_NAME,

@@ -145,3 +145,7 @@ venv.bak/
 logs/
 
 extension.node_modules/
+
+# SQLite dev database
+*.db
+companion.db

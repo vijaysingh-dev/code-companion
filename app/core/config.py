@@ -4,7 +4,10 @@ from typing import Annotated
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-from app.core.constants import LLMProvider
+from app.core.constants import BASE_DIR, LLMProvider
+
+# SQLite file next to the repo root by default (absolute, so it doesn't depend on CWD).
+_DEFAULT_DB_PATH = BASE_DIR / "companion.db"
 
 # Recommended model per provider, used when the matching *_MODEL is left blank.
 # Pin a specific model in .env to override.
@@ -39,6 +42,16 @@ class Settings(BaseSettings):
 
     API_PREFIX: str = "/api"
     LOG_LEVEL: str = Field(default="INFO")
+
+    # Auth: the CLI signs stateless access tokens with SECRET_KEY (HS256); each request
+    # verifies signature + expiry, no DB lookup. SECRET_KEY must be set to issue/verify
+    # tokens (left blank so unrelated startup doesn't fail); rotating it invalidates all
+    # outstanding tokens — the only global revoke.
+    SECRET_KEY: str = Field(default="")
+    TOKEN_TTL_DAYS: int = Field(default=30)
+
+    # DB (SQLAlchemy async). SQLite for dev/self-host; point at Postgres (asyncpg) for teams.
+    DATABASE_URL: str = Field(default=f"sqlite+aiosqlite:///{_DEFAULT_DB_PATH}")
 
     # NoDecode: keep pydantic-settings from JSON-decoding the dotenv value, so the
     # validator below receives the raw comma-separated string.

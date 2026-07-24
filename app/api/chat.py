@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
+from app.api.auth import authenticated
 from app.api.deps import get_chat_service
 from app.core.constants import StreamEventType
 from app.models.response import StreamEvent
@@ -22,6 +23,7 @@ def _sse(event: StreamEvent) -> str:
     return f"event: {event.type.value}\ndata: {event.model_dump_json(exclude_none=True)}\n\n"
 
 
+@authenticated
 @router.post("")
 async def chat(
     request: ChatRequest,

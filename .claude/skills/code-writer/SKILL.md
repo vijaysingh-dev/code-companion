@@ -1,22 +1,19 @@
 ---
 name: code-writer
-description: 'Use this skill whenever writing or editing implementation code in the Code Companion repo — Python/FastAPI (app/) or TypeScript (extension/). Triggers on any request to add or change a router, service, pydantic model, middleware, extension command, webview, or provider, or to refactor existing code. Use it even when the request does not say "follow conventions". In the TDD flow it runs AFTER tests exist and fail; its job is to make them pass with the minimum, cleanest change. Respects backend-first phasing: backend is written and tested before the extension consumes it.'
+description: 'Use this skill whenever writing or editing implementation code in the Code Companion repo — Python/FastAPI (app/) or TypeScript (extension/). Triggers on any request to add or change a router, service, pydantic model, middleware, extension command, webview, or provider, or to refactor existing code. Use it even when the request does not say "follow conventions". Respects backend-first phasing: backend is written before the extension consumes it.'
 ---
 
 # code-writer
 
 The "how the implementation is written" standard for Code Companion. Read `CLAUDE.md` for project facts (layout, phase, conventions). This file is the quality checklist, not a project description — don't duplicate project facts here.
 
-## Workflow: modes, phases
+## Workflow: phases
 
-**Modes — default is separate.**
+**No automated tests yet.** Don't write or expect a test suite. Verify by reading the code and running `ruff`/`mypy` (and the app manually when useful).
 
-- **Separate (learning-first):** write failing test → confirm it fails → STOP for human sign-off → implement → run tests, fix until green → STOP → hand to `pr-reviewer`. When you finish implementing in this mode, present the diff and stop; do not continue.
-- **Together (faster):** test → code → review in one pass; human reviews the bundle.
+**Phase order — backend first.** A slice is built in `app/` before the `extension/` consumes it. Don't write extension code against a backend endpoint that isn't done. Backend order within a slice: **schema (pydantic) → service → router**.
 
-**Phase order — backend first.** A slice is built and tested in `app/` before the `extension/` consumes it. Don't write extension code against a backend endpoint that isn't done and passing. Backend order within a slice: **schema (pydantic) → service → router**.
-
-**AI runs the mechanical steps:** run the tests (to confirm failure, then green), `ruff check`/`ruff format`, `mypy app/`. The human decides phase transitions.
+**AI runs the mechanical steps:** `ruff check`/`ruff format`, `mypy app/`. The human decides phase transitions.
 
 ## Core principle
 
@@ -62,7 +59,7 @@ VS Code extension, `tsc` strict, Prettier printWidth 120, ESLint flat config.
 2. **Duplication:** did I re-implement something already in `app/services/`, `app/core/`, or the extension — in any layer?
 3. **Phase:** right phase? No extension code against a backend that isn't done + green?
 4. **Config/paths:** env via `settings`, `BASE_DIR` imported from `constants` (no `os.getenv`, no recomputed paths)?
-5. **Gates:** tests green? `ruff check`/`ruff format`/`mypy app/` clean? (extension) `tsc` clean?
+5. **Gates:** `ruff check`/`ruff format`/`mypy app/` clean? (extension) `tsc` clean?
 6. **Logging:** every Python file I touched has `logger = logging.getLogger(__name__)` and meaningful log calls?
 7. **Typing:** every signature annotated, no silent `Any`, `X | None` not `Optional`?
 8. **Comments:** minimal, descriptive, non-instructional?
@@ -71,4 +68,4 @@ VS Code extension, `tsc` strict, Prettier printWidth 120, ESLint flat config.
 11. **Contract sync:** if I changed `app/models/schema.py`, did the extension's request/response types follow?
 12. **CLAUDE.md drift:** if I added a module/convention or moved a roadmap slice to "current", is the matching CLAUDE.md update in this diff?
 
-In **separate mode**, after presenting: stop. Hand back to the human.
+After presenting the diff, stop and hand back to the human.

@@ -3,7 +3,7 @@ import logging.config
 from pathlib import Path
 
 from app.core.config import settings
-from app.core.constants import BASE_DIR
+from app.core.constants import BASE_DIR, AppMode
 
 _configured = False
 
@@ -22,6 +22,23 @@ class RelativePathFormatter(logging.Formatter):
         except (ValueError, IndexError):
             record.relative_path = record.name
         return super().format(record)
+
+
+def _build_cli_config() -> dict:
+    """CLI logging: plain stderr, no rotating file (a CLI shouldn't write app logs)."""
+    return {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {"plain": {"format": "{levelname} {message}", "style": "{"}},
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stderr",
+                "formatter": "plain",
+            },
+        },
+        "root": {"level": settings.LOG_LEVEL.upper(), "handlers": ["console"]},
+    }
 
 
 def _build_config() -> dict:
@@ -59,11 +76,12 @@ def _build_config() -> dict:
     }
 
 
-def setup_logging() -> None:
-    """Configure logging once per process (console + rotating file at logs/app.log)."""
+def setup_logging(mode: AppMode = AppMode.APP) -> None:
+    """Configure logging once per process. APP: console + rotating file; CLI: plain stderr."""
     global _configured
     if _configured:
         return
     _configured = True
 
-    logging.config.dictConfig(_build_config())
+    config = _build_cli_config() if mode is AppMode.CLI else _build_config()
+    logging.config.dictConfig(config)

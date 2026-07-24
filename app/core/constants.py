@@ -1,10 +1,28 @@
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
 
 # Project root (the `code-companion/` directory). This file lives at
 # app/core/constants.py, so three parents up is the repo root. Import BASE_DIR
 # from here everywhere instead of recomputing paths.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+class AppMode(str, Enum):
+    """Which entrypoint started the process.
+
+    Shared by one `Application` class: the FastAPI app runs as `APP` (needs the
+    outbound HTTP client for LLM calls), the admin CLI runs as `CLI` (DB only,
+    plain stderr logging). Gates logging setup and which subsystems start.
+    """
+
+    APP = "app"
+    CLI = "cli"
 
 
 class LLMProvider(str, Enum):
