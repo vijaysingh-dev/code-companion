@@ -49,9 +49,10 @@ VS Code extension, `tsc` strict, Prettier printWidth 120, ESLint flat config.
 
 ## Comment discipline (strict)
 
-- Sparingly, only where intent isn't obvious from the code.
-- Describe **what/why** as natural description — never step-by-step narration. Bad: `# loop through files`. OK if non-obvious: `# site-packages frames fall back to the logger name, not an absolute path`.
-- No line-by-line, no comment-per-block, no commented-out code, no TODO dumps. A `# TODO(Sx.y):` pointing at a roadmap slice is fine.
+- **Default to none.** Most code needs no comments — a well-named function/variable beats a comment. When in doubt, leave it out.
+- Add one only where intent genuinely isn't recoverable from the code, and keep it to **one concise line** stating *why* (the non-obvious constraint), never narrating *what*. Bad: `# loop through files`. OK: `# site-packages frames fall back to the logger name, not an absolute path`.
+- No line-by-line, no comment-per-block, no section banners, no commented-out code.
+- Future work goes in a single-line `# TODO: <what>`. Nothing else in TODO form.
 
 ## Self-check before presenting any diff
 
@@ -62,7 +63,7 @@ VS Code extension, `tsc` strict, Prettier printWidth 120, ESLint flat config.
 5. **Gates:** `ruff check`/`ruff format`/`mypy app/` clean? (extension) `tsc` clean?
 6. **Logging:** every Python file I touched has `logger = logging.getLogger(__name__)` and meaningful log calls?
 7. **Typing:** every signature annotated, no silent `Any`, `X | None` not `Optional`?
-8. **Comments:** minimal, descriptive, non-instructional?
+8. **Comments:** defaulted to none; any kept one is a concise one-liner explaining *why*, not narrating? Future work as `# TODO: <what>`?
 9. **Minimal change:** flattest correct version, no premature abstraction or pattern that doesn't earn its place?
 10. **Skeleton kept generic:** did I avoid leaking domain logic into `app/core/` / `middleware/`?
 11. **Contract sync:** if I changed `app/models/schema.py`, did the extension's request/response types follow?

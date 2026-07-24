@@ -149,3 +149,6 @@ extension.node_modules/
 # SQLite dev database
 *.db
 companion.db
+
+# Local LLM catalog (holds API keys); commit config.example.yaml instead
+config.yaml

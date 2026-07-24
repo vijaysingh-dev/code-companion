@@ -36,7 +36,7 @@ Diff vs stated intent. Missing cases? Misread requirement? Are negative paths ha
 - **Typing:** signatures annotated, no silent `Any`, `X | None` not `Optional`, imports sorted (first-party `app`)?
 - **Errors:** services raise `CodeCompanionException` subclasses; routers don't hand-build error dicts?
 - **Async:** I/O paths are `async`, no blocking calls on the event loop?
-- **Comments:** sparse, descriptive (what/why), non-instructional? Flag narration, line-by-line comments, commented-out code, stray TODOs (a `# TODO(Sx.y)` roadmap pointer is fine).
+- **Comments:** defaulted to none — flag over-commenting hard. A kept comment must be a concise one-liner explaining *why*; flag narration, comment-per-block, section banners, commented-out code. Future work only as `# TODO: <what>`.
 - **TS:** no leftover `console.log`, no implicit `any`, no unused locals/params.
 
 ### 4. Security & data integrity

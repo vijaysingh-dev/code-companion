@@ -1,34 +1,59 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 from app.core.constants import Effort
 
 
 class ChatRequest(BaseModel):
+    session_id: str
     message: str = Field(..., min_length=1)
-    # Optional caller-supplied context, e.g. the open file or selection.
     context: str | None = None
-    # Optional per-request overrides; None => server default (from settings). `model` is
-    # validated against the configured provider's catalog; `effort` is the main-tier
-    # reasoning control (translated per provider).
+    # Optional per-turn model override; None => keep the session's current model.
+    provider: str | None = None
     model: str | None = None
     effort: Effort | None = None
 
 
-class ChatResponse(BaseModel):
-    content: str
-
-
 class ModelInfo(BaseModel):
-    id: str
-    # Whether this model honours the `effort` control (frontier/reasoning models do).
+    provider: str
+    provider_name: str
+    model: str
     supports_effort: bool
-    # The currently configured main model.
-    default: bool
 
 
 class ModelsResponse(BaseModel):
-    provider: str
     models: list[ModelInfo]
+
+
+class CreateSessionRequest(BaseModel):
+    provider: str | None = None
+    model: str | None = None
+    title: str | None = None
+
+
+class SessionInfo(BaseModel):
+    id: str
+    provider: str
+    model: str
+    title: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class SessionsResponse(BaseModel):
+    sessions: list[SessionInfo]
+
+
+class MessageInfo(BaseModel):
+    id: int
+    role: str
+    content: str
+    created_at: datetime
+
+
+class SessionDetail(SessionInfo):
+    messages: list[MessageInfo]
 
 
 class HealthResponse(BaseModel):

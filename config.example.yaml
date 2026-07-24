@@ -1,0 +1,57 @@
+# LLM catalog. Copy to config.yaml (gitignored) and fill in real keys.
+# Clients pick a model by provider + model (GET /api/models); the mini model is per provider.
+
+providers:
+  - provider: anthropic          # one of: openai | anthropic | google | llama
+    name: Claude                 # display name shown to clients
+    api_key: "sk-ant-..."
+    # base_url:                   # optional; for self-hosted / OpenAI-compatible endpoints
+    max_tokens: 4096
+    mini_model: claude-haiku-4-5
+    models:
+      - id: claude-opus-4-8
+        effort: true
+      - id: claude-sonnet-5
+        effort: true
+
+  - provider: openai
+    name: GPT
+    api_key: "sk-..."
+    max_tokens: 4096
+    mini_model: gpt-4o-mini
+    models:
+      - id: gpt-5.1
+        effort: true
+      - id: gpt-4o
+
+  - provider: google
+    name: Gemini
+    api_key: "..."
+    max_tokens: 4096
+    mini_model: gemini-2.5-flash
+    models:
+      - id: gemini-2.5-pro
+
+  - provider: azure                        # Azure OpenAI: model ids are DEPLOYMENT names
+    name: Azure GPT
+    api_key: "azure-key"
+    base_url: "https://your-resource.openai.azure.com"
+    api_version: "2024-10-21"
+    max_tokens: 4096
+    mini_model: gpt-4o-mini-deployment
+    models:
+      - id: gpt-5-deployment
+        effort: true
+
+  - provider: bedrock                      # AWS Bedrock (Converse); SigV4 auth, no api_key
+    name: Bedrock
+    region: us-east-1
+    aws_access_key_id: "AKIA..."
+    aws_secret_access_key: "..."
+    # aws_session_token: "..."             # optional, for temporary credentials
+    max_tokens: 4096
+    mini_model: anthropic.claude-3-5-haiku-20241022-v1:0
+    models:
+      - id: anthropic.claude-sonnet-4-20250514-v1:0
+        effort: true
+  

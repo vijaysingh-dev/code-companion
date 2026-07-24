@@ -1,19 +1,18 @@
 import logging
-from typing import Literal
 
 import httpx
 
-from app.core.config import settings
 from app.core.constants import LLMProvider
 from app.llm.providers.anthropic import AnthropicProvider
+from app.llm.providers.azure import AzureOpenAIProvider
 from app.llm.providers.base import BaseProvider
+from app.llm.providers.bedrock import BedrockConverseProvider
 from app.llm.providers.gemini import GeminiProvider
 from app.llm.providers.openai import OpenAIProvider
 
 logger = logging.getLogger(__name__)
 
-# Identifier -> adapter class. `llama` reuses the OpenAI adapter (OpenAI-compatible
-# wire format) with a caller-supplied base URL; `google` maps to Gemini.
+# `llama` reuses the OpenAI adapter (OpenAI-compatible wire) with a caller-supplied base URL.
 _ADAPTERS: dict[LLMProvider, type[BaseProvider]] = {
     LLMProvider.OPENAI: OpenAIProvider,
     LLMProvider.LLAMA: OpenAIProvider,
@@ -27,38 +26,28 @@ def build_provider(
     api_key: str,
     base_url: str | None = None,
     *,
+    api_version: str | None = None,
+    region: str | None = None,
+    aws_access_key_id: str | None = None,
+    aws_secret_access_key: str | None = None,
+    aws_session_token: str | None = None,
     client: httpx.AsyncClient | None = None,
 ) -> BaseProvider:
     """Construct an adapter for an explicit provider/credentials pair."""
     try:
-        adapter = _ADAPTERS[LLMProvider(provider)]
-    except (KeyError, ValueError) as exc:
+        resolved = LLMProvider(provider)
+    except ValueError as exc:
         raise ValueError(f"unsupported LLM provider: {provider!r}") from exc
-    return adapter(api_key=api_key, base_url=base_url or None, client=client)
 
-
-def get_provider(
-    tier: Literal["main", "mini"] = "main",
-    *,
-    client: httpx.AsyncClient | None = None,
-) -> BaseProvider:
-    """Build the adapter for a configured tier (from `settings`).
-
-    `main` is the reasoning/coding model; `mini` is the cheap/fast tier. The mini
-    tier's provider/credentials are resolved in `Settings` (inherited from main when
-    on the same provider). The model id itself lives in settings.{LLM,MINI_LLM}_MODEL
-    and is set on each CompletionRequest by the caller — the adapter is model-agnostic.
-    """
-    if tier == "mini":
-        return build_provider(
-            settings.MINI_LLM_PROVIDER or settings.LLM_PROVIDER,
-            settings.MINI_LLM_API_KEY or "",
-            settings.MINI_LLM_BASE_URL or None,
+    if resolved is LLMProvider.AZURE:
+        return AzureOpenAIProvider(api_key, base_url or "", api_version=api_version or "", client=client)
+    if resolved is LLMProvider.BEDROCK:
+        return BedrockConverseProvider(
+            region or "",
+            aws_access_key_id or "",
+            aws_secret_access_key or "",
+            session_token=aws_session_token,
             client=client,
         )
-    return build_provider(
-        settings.LLM_PROVIDER,
-        settings.LLM_API_KEY,
-        settings.LLM_BASE_URL or None,
-        client=client,
-    )
+
+    return _ADAPTERS[resolved](api_key=api_key, base_url=base_url or None, client=client)

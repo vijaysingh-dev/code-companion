@@ -25,24 +25,27 @@ app/
   api/               HTTP layer — routers only, thin. router.py aggregates (no version prefix)
   api/auth.py        @authenticated decorator: verify bearer token → request.state.user_id
   migrations/        Alembic (async env.py); versions/ holds revisions
-  services/          domain logic lives here, not in views (chat, catalog, user)
+  services/          domain logic lives here, not in views (chat, catalog, user, session)
   models/schema.py   pydantic request/response (wire) models
-  models/tables.py   SQLAlchemy ORM tables (User) — distinct from the pydantic wire models
+  models/tables.py   SQLAlchemy ORM tables (User, Session, SessionMessage) — distinct from wire models
   cli/               typer admin CLI (`python -m app.cli.main`) — runs Application in CLI mode
   middleware/        request logging + exception handlers
+config.yaml          LLM catalog (gitignored — holds keys); commit config.example.yaml
 extension/           VS Code extension (own package.json, tsconfig, .vscode/)
 ```
 
 ## Conventions (backend)
 
 - **BASE_DIR**: defined once in `app/core/constants.py` as the repo root. Import it (`from app.core.constants import BASE_DIR`) — do not write `Path(__file__).parent...` elsewhere.
-- **Config**: all env reads go through `settings` (`app.core.config`). Never call `os.getenv` in app code.
+- **Config**: app/infra settings (DEBUG, CORS, SECRET_KEY, DB, ports) come from `.env` via `settings` (`app.core.config`) — never `os.getenv`. **LLM/model config is separate**: it lives in `config.yaml` (gitignored, holds API keys; commit `config.example.yaml`), loaded by `app/services/catalog.py`. Clients pick a `provider`+`model` from `GET /api/models`; `catalog.resolve()` returns credentials, `max_tokens`, and the per-provider `mini_model`. Don't add LLM config to `settings`/`.env`.
 - **Logging**: every module has `logger = logging.getLogger(__name__)` — never a hardcoded name. `setup_logging(mode)` runs once per process (APP in the app factory, CLI in the typer callback). Logs render as `LEVEL <iso-time>.<ms> <path>:<line> - message`, where `<path>` is relative to BASE_DIR via `RelativePathFormatter`.
 - **Service layer**: domain logic goes in `app/services/`; routers only parse → call service → shape response.
 - **API is unversioned** — no `/v1`. Add routers to `app/api/router.py`; they mount under `settings.API_PREFIX` (`/api`).
 - **DB**: async SQLAlchemy 2.0. ORM tables in `app/models/tables.py` (inherit `Base` from `app.core.db`), never mixed with pydantic wire models in `schema.py`. Access via `Application.sessionmaker`. Schema changes go through Alembic (`migrations/`, async `env.py`, url from `settings.DATABASE_URL`); apply with `python -m app.cli.main migrate`. DB-touching CLI commands fail fast unless the schema is at head.
+- **Sessions**: conversation history is server-side (not client-supplied). `ChatRequest` = `session_id` + `message` (+ optional `context`/`provider`/`model`/`effort`). `POST /api/chat` loads the thread, streams, and persists the user + assistant turns; history is compacted server-side (a char budget for now). Session CRUD lives at `/api/sessions` (all authenticated, scoped to the caller). `SessionService` owns persistence + domain-message conversion.
 - **Auth**: stateless signed JWT (`app.core.security`). The CLI issues tokens (`SECRET_KEY`, `TOKEN_TTL_DAYS`) after confirming the user id exists; request-time verification stays DB-free (signature + expiry only). `SECRET_KEY` must be ≥32 bytes; rotating it invalidates all tokens (the only revoke). Protect an endpoint with `@authenticated` (`app/api/auth.py`) — sets `request.state.user_id`; a temporary bridge until an AuthMiddleware.
 - **AppMode**: one `Application` serves both entrypoints. APP starts the HTTP client + DB; CLI starts DB only. Pass the mode to `setup_logging` and construct via `init_api_app()` / `get_cli_app()`.
+- **Comments**: default to none. Add a concise one-liner only where intent isn't obvious from the code, stating *why*, never narrating *what*. Future work as `# TODO: <what>`.
 - **Style**: Ruff + Mypy, line 120, double quotes, `X | None` (not `Optional`). Annotate every signature.
 
 ## Commands

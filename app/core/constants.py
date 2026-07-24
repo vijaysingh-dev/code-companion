@@ -28,16 +28,19 @@ class AppMode(str, Enum):
 class LLMProvider(str, Enum):
     """Canonical provider identifiers.
 
-    Shared by `app.core.config` (settings validation) and `app.llm` (the factory
-    that picks an adapter). `google` maps to the Gemini adapter and `llama` to the
-    OpenAI adapter (OpenAI-compatible wire format, different base URL), so the set
-    of *identifiers* is wider than the set of *adapters*.
+    Shared by the model catalog (`app.services.catalog`) and `app.llm` (the factory
+    that picks an adapter). Several identifiers reuse the OpenAI adapter over a
+    different base URL/auth — `llama` (OpenAI-compatible hosts) and `azure` (Azure
+    OpenAI) — and `google` maps to Gemini, so the set of *identifiers* is wider than
+    the set of *adapters*.
     """
 
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
     LLAMA = "llama"
+    AZURE = "azure"
+    BEDROCK = "bedrock"
 
 
 class Effort(str, Enum):
