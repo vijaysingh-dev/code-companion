@@ -86,6 +86,10 @@ class ApiService {
     return this.request<T>("POST", path, { ...opts, body });
   }
 
+  patch<T>(path: string, body: unknown, opts: RequestOptions = {}): Promise<T> {
+    return this.request<T>("PATCH", path, { ...opts, body });
+  }
+
   del(path: string, opts: RequestOptions = {}): Promise<void> {
     return this.request<void>("DELETE", path, opts);
   }

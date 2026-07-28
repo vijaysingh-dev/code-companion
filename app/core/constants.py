@@ -77,4 +77,5 @@ class StreamEventType(str, Enum):
     USAGE = "usage"
     STOP = "stop"
     ERROR = "error"
+    TITLE = "title"  # app-level: an auto-generated session title, injected into the SSE stream
     DONE = "done"

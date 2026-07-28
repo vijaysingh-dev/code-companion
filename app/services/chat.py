@@ -52,21 +52,23 @@ class ChatService:
         message: str,
         provider: str | None,
         model: str | None,
-    ) -> tuple[ResolvedModel, list[Message]]:
+    ) -> tuple[ResolvedModel, list[Message], bool]:
         """Validate ownership + selection, persist the user turn, return the replay messages.
 
         Runs before streaming so a bad session (404) or model (422) is a clean HTTP error
-        rather than an SSE frame after the stream has started.
+        rather than an SSE frame after the stream has started. The third element is True
+        when this is the first turn of an untitled session (title should be generated).
         """
         async with self._sessionmaker() as db:
             service = SessionService(db)
             session = await service.get(user_id, session_id)
             resolved = catalog.resolve(provider or session.provider, model or session.model)
             history = await service.history(session_id)
+            needs_title = session.title is None and not history
             user_message = Message.user(message)
             await service.add_message(session_id, user_message)
             await service.touch(session_id, resolved.provider.value, resolved.model)
-        return resolved, _compact(history) + [user_message]
+        return resolved, _compact(history) + [user_message], needs_title
 
     async def stream_turn(
         self,
@@ -75,6 +77,7 @@ class ChatService:
         messages: list[Message],
         context: str | None,
         effort: Effort | None,
+        generate_title: bool = False,
     ) -> AsyncIterator[StreamEvent]:
         logger.info(
             "Streaming turn (session=%s, provider=%s, model=%s)", session_id, resolved.provider.value, resolved.model
@@ -111,3 +114,37 @@ class ChatService:
         if text:
             async with self._sessionmaker() as db:
                 await SessionService(db).add_message(session_id, Message.assistant(text), usage=usage)
+
+        if generate_title:
+            title = await self._generate_title(resolved, messages[-1].text)
+            if title:
+                async with self._sessionmaker() as db:
+                    await SessionService(db).set_title(session_id, title)
+                yield StreamEvent(type=StreamEventType.TITLE, title=title)
+
+    async def _generate_title(self, resolved: ResolvedModel, first_message: str) -> str | None:
+        """Summarize the first user message into a short session title via the mini tier."""
+        provider = build_provider(
+            resolved.provider,
+            resolved.api_key,
+            resolved.base_url,
+            api_version=resolved.api_version,
+            region=resolved.region,
+            aws_access_key_id=resolved.aws_access_key_id,
+            aws_secret_access_key=resolved.aws_secret_access_key,
+            aws_session_token=resolved.aws_session_token,
+            client=self._client,
+        )
+        request = CompletionRequest(
+            model=resolved.mini_model,
+            system=prompts.render("title"),
+            messages=[Message.user(first_message)],
+            max_tokens=32,
+            temperature=0.3,  # temperature is a mini-tier control; main models reject it
+        )
+        try:
+            response = await provider.complete(request)
+        except Exception:  # noqa: BLE001 - a failed title must not fail the chat turn
+            logger.warning("Title generation failed for session", exc_info=True)
+            return None
+        return response.text.strip().strip('"') or None

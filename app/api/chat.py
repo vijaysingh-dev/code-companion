@@ -30,13 +30,15 @@ async def chat(
 ) -> StreamingResponse:
     # prepare_turn validates the session (404) and model (422) and persists the user turn
     # before any bytes are streamed, so those stay clean HTTP errors.
-    resolved, messages = await service.prepare_turn(
+    resolved, messages, needs_title = await service.prepare_turn(
         request.state.user_id, body.session_id, body.message, body.provider, body.model
     )
 
     async def frames() -> AsyncIterator[str]:
         try:
-            async for event in service.stream_turn(body.session_id, resolved, messages, body.context, body.effort):
+            async for event in service.stream_turn(
+                body.session_id, resolved, messages, body.context, body.effort, generate_title=needs_title
+            ):
                 yield _sse(event)
         except Exception as exc:  # noqa: BLE001 - headers already sent; surface as an SSE error, not a 500
             logger.exception("chat stream failed")

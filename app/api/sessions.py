@@ -6,7 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import authenticated
 from app.api.deps import get_db
-from app.models.schema import CreateSessionRequest, MessageInfo, SessionDetail, SessionInfo, SessionsResponse
+from app.models.schema import (
+    CreateSessionRequest,
+    MessageInfo,
+    SessionDetail,
+    SessionInfo,
+    SessionsResponse,
+    UpdateSessionRequest,
+)
 from app.models.tables import ChatSession, SessionMessage
 from app.services import catalog
 from app.services.session import SessionService
@@ -63,6 +70,18 @@ async def get_session(
     messages = await service.rows(session_id)
     info: dict[str, Any] = _info(row).model_dump()
     return SessionDetail(**info, messages=[_message_info(m) for m in messages])
+
+
+@router.patch("/{session_id}")
+@authenticated
+async def update_session(
+    request: Request,
+    session_id: str,
+    body: UpdateSessionRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> SessionInfo:
+    row = await SessionService(db).update_title(request.state.user_id, session_id, body.title)
+    return _info(row)
 
 
 @router.delete("/{session_id}", status_code=204)

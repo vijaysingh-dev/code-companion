@@ -4,13 +4,19 @@ export { Api, BackendError, getTokenExpiryMs } from "./api.js";
 import * as auth from "./auth.js";
 import { checkHealth } from "./health.js";
 import { listModels } from "./models.js";
-import { createSession } from "./sessions.js";
+import { createSession, deleteSession, getSession, listSessions, updateSessionTitle } from "./sessions.js";
 import { streamChat } from "./client.js";
 
 export const api = {
   auth,
   health: { check: checkHealth },
   models: { list: listModels },
-  sessions: { create: createSession },
+  sessions: {
+    create: createSession,
+    list: listSessions,
+    get: getSession,
+    updateTitle: updateSessionTitle,
+    delete: deleteSession,
+  },
   chat: { stream: streamChat },
 };

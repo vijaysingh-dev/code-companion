@@ -1,7 +1,9 @@
 // Transcript renderer. Clones the #tpl-* templates from index.html and folds
 // streamed StreamEvents into the current assistant turn. Content blocks are
 // keyed by their stream `index` so interleaved text / thinking / tool calls
-// stay ordered.
+// stay ordered. Assistant text is rendered as Markdown; user text stays plain.
+
+import { renderMarkdown } from "./markdown.js";
 
 export function createMessages({ root, empty }) {
   let current = null; // { body, blocks: Map<index, {node, buf}> }
@@ -14,6 +16,34 @@ export function createMessages({ root, empty }) {
     node.querySelector(".cc-msg-body").textContent = text;
     root.appendChild(node);
     scroll();
+  }
+
+  // A completed assistant message (used when replaying an opened session's history).
+  function addAssistantText(text) {
+    empty.remove();
+    const node = clone("tpl-assistant");
+    const textNode = clone("tpl-text");
+    textNode.innerHTML = renderMarkdown(text);
+    node.querySelector(".cc-body").appendChild(textNode);
+    root.appendChild(node);
+    scroll();
+  }
+
+  // Replace the transcript with a session's stored messages, oldest first.
+  function load(msgs) {
+    current = null;
+    root.replaceChildren();
+    if (msgs.length === 0) {
+      root.appendChild(empty);
+      return;
+    }
+    for (const msg of msgs) {
+      if (msg.role === "user") {
+        addUser(msg.content);
+      } else {
+        addAssistantText(msg.content);
+      }
+    }
   }
 
   function ensureTurn() {
@@ -46,7 +76,7 @@ export function createMessages({ root, empty }) {
       case "text_delta": {
         const entry = block(ensureTurn(), i, "tpl-text");
         entry.buf += event.text ?? "";
-        entry.node.textContent = entry.buf;
+        entry.node.innerHTML = renderMarkdown(entry.buf);
         break;
       }
       case "thinking_delta": {
@@ -97,5 +127,5 @@ export function createMessages({ root, empty }) {
     root.scrollTop = root.scrollHeight;
   }
 
-  return { addUser, streamEvent, turnEnd, addError, clear };
+  return { addUser, load, streamEvent, turnEnd, addError, clear };
 }

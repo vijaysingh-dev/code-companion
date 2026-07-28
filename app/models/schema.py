@@ -32,6 +32,10 @@ class CreateSessionRequest(BaseModel):
     title: str | None = None
 
 
+class UpdateSessionRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+
+
 class SessionInfo(BaseModel):
     id: str
     provider: str

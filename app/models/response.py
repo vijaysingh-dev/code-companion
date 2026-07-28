@@ -38,6 +38,7 @@ class StreamEvent(BaseModel):
       USAGE           -> usage
       STOP            -> stop_reason
       ERROR           -> error
+      TITLE           -> title
 
     Tool-call contract: args always arrive as a concatenated JSON string across one
     or more TOOL_USE_DELTA events. Providers that return a whole object at once
@@ -57,6 +58,7 @@ class StreamEvent(BaseModel):
     stop_reason: StopReason | None = None  # STOP
     model: str | None = None  # MESSAGE_START
     error: str | None = None  # ERROR
+    title: str | None = None  # TITLE
 
 
 class CompletionResponse(BaseModel):

@@ -5,7 +5,7 @@ import * as auth from "../api/auth.js";
 import { streamChat } from "../api/client.js";
 import { checkHealth } from "../api/health.js";
 import { listModels } from "../api/models.js";
-import { createSession } from "../api/sessions.js";
+import { createSession, deleteSession, getSession, listSessions, updateSessionTitle } from "../api/sessions.js";
 import { activeFile, buildContextString, pickFiles } from "../context/files.js";
 import type { ContextFile, HealthStatus, InboundMessage, ModelInfo, OutboundMessage } from "../types.js";
 
@@ -87,6 +87,84 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     this.sessionId = null;
     this.context = [];
     this.post({ type: "cleared" });
+    this.syncActiveFile();
+  }
+
+  /** Reloads the caller's sessions and shows the history/home list. */
+  public async refreshSessions(): Promise<void> {
+    if (!Api.isAuthenticated()) {
+      return;
+    }
+    try {
+      this.post({ type: "sessions", sessions: await listSessions() });
+    } catch (err) {
+      this.post({ type: "error", message: this.describe(err) });
+    }
+  }
+
+  /** Returns to the home list and resets to a fresh "new chat" (back button or History command). */
+  public async goHome(): Promise<void> {
+    this.inFlight?.abort();
+    this.sessionId = null;
+    this.context = [];
+    this.post({ type: "home" });
+    this.post({ type: "context", files: [] });
+    this.syncActiveFile();
+    await this.refreshSessions();
+  }
+
+  private async openSession(id: string): Promise<void> {
+    this.inFlight?.abort();
+    try {
+      const session = await getSession(id);
+      this.sessionId = session.id;
+      this.context = [];
+      this.post({ type: "sessionOpened", session });
+      this.syncActiveFile();
+    } catch (err) {
+      this.post({ type: "error", message: this.describe(err) });
+    }
+  }
+
+  private async renameSession(id: string, title: string): Promise<void> {
+    const next = title.trim();
+    if (!next) {
+      return;
+    }
+    try {
+      const updated = await updateSessionTitle(id, next);
+      this.post({ type: "title", id: updated.id, title: updated.title ?? next });
+      await this.refreshSessions();
+    } catch (err) {
+      this.post({ type: "error", message: this.describe(err) });
+    }
+  }
+
+  private async deleteSession(id: string): Promise<void> {
+    const confirmed = await vscode.window.showWarningMessage(
+      "Delete this chat and its messages? This cannot be undone.",
+      { modal: true },
+      "Delete",
+    );
+    if (confirmed !== "Delete") {
+      return;
+    }
+    try {
+      await deleteSession(id);
+      if (this.sessionId === id) {
+        this.sessionId = null;
+      }
+      await this.refreshSessions();
+    } catch (err) {
+      this.post({ type: "error", message: this.describe(err) });
+    }
+  }
+
+  /** Tells the webview whether the active editor's file can be added (has one, not already attached). */
+  public syncActiveFile(): void {
+    const file = activeFile();
+    const canAdd = Boolean(file) && !this.context.some((f) => f.fsPath === file?.fsPath);
+    this.post({ type: "activeFile", canAdd });
   }
 
   // ── Webview messages ──────────────────────────────────────────────────────
@@ -104,6 +182,21 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       case "newSession":
         this.newSession();
         return;
+      case "goHome":
+        await this.goHome();
+        return;
+      case "showHistory":
+        await this.refreshSessions();
+        return;
+      case "openSession":
+        await this.openSession(message.id);
+        return;
+      case "renameSession":
+        await this.renameSession(message.id, message.title);
+        return;
+      case "deleteSession":
+        await this.deleteSession(message.id);
+        return;
       case "expand":
         await this.openInEditor();
         return;
@@ -116,6 +209,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       case "removeContext":
         this.context = this.context.filter((f) => f.fsPath !== message.fsPath);
         this.post({ type: "context", files: this.context });
+        this.syncActiveFile();
         return;
       case "login":
         await auth.login();
@@ -132,6 +226,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       this.sessionId = null;
     }
     this.post({ type: "auth", authenticated });
+    if (authenticated) {
+      void this.refreshSessions();
+    }
   }
 
   private async init(): Promise<void> {
@@ -139,6 +236,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     try {
       this.models = await listModels();
       this.post({ type: "init", models: this.models, context: this.context, authenticated: Api.isAuthenticated() });
+      this.syncActiveFile();
+      await this.refreshSessions();
       this.setHealth("healthy");
     } catch (err) {
       this.post({
@@ -205,6 +304,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       );
       for await (const event of events) {
         this.post({ type: "stream", event });
+        if (event.type === "title" && event.title && this.sessionId) {
+          this.post({ type: "title", id: this.sessionId, title: event.title });
+        }
       }
       this.post({ type: "turnEnd" });
       this.setHealth("healthy");
@@ -236,6 +338,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       }
     }
     this.post({ type: "context", files: this.context });
+    this.syncActiveFile();
   }
 
   private describe(err: unknown): string {

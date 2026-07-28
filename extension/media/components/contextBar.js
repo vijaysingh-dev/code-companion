@@ -2,10 +2,17 @@
 // only wires the buttons and clones #tpl-pill for each attached file.
 
 export function createContextBar({ root, pills, onAddActive, onPick, onRemove }) {
-  root.querySelector('[data-action="add-active"]').addEventListener("click", onAddActive);
+  const addActive = root.querySelector('[data-action="add-active"]');
+  addActive.addEventListener("click", onAddActive);
   root.querySelector('[data-action="pick"]').addEventListener("click", onPick);
 
   const template = document.getElementById("tpl-pill");
+
+  // Hide "+ Active file" once the active file is attached (or there is none);
+  // it reappears when the editor moves to a file not yet in context.
+  function setCanAddActive(canAdd) {
+    addActive.classList.toggle("hidden", !canAdd);
+  }
 
   function render(files) {
     pills.replaceChildren();
@@ -18,5 +25,5 @@ export function createContextBar({ root, pills, onAddActive, onPick, onRemove })
     }
   }
 
-  return { render };
+  return { render, setCanAddActive };
 }

@@ -3,7 +3,9 @@
 
 export type Effort = "low" | "medium" | "high" | "max";
 
-export type PermissionMode = "local";
+// Ask = answer only; Plan = read/plan, no edits; Agent = edits + asks on risky commands.
+// UI-only for now (the backend does not yet act on it).
+export type PermissionMode = "ask" | "plan" | "agent";
 
 // Backend reachability shown as a status dot; UI-only, not a wire DTO.
 export type HealthStatus = "unknown" | "healthy" | "unreachable";
@@ -26,6 +28,19 @@ export interface SessionInfo {
   updated_at: string;
 }
 
+// Mirrors app/models/schema.py::MessageInfo
+export interface MessageInfo {
+  id: number;
+  role: string;
+  content: string;
+  created_at: string;
+}
+
+// Mirrors app/models/schema.py::SessionDetail
+export interface SessionDetail extends SessionInfo {
+  messages: MessageInfo[];
+}
+
 // Mirrors app/models/response.py::StreamEvent (only the fields the UI reads).
 export type StreamEventType =
   | "message_start"
@@ -37,6 +52,7 @@ export type StreamEventType =
   | "usage"
   | "stop"
   | "error"
+  | "title"
   | "done";
 
 export interface StreamEvent {
@@ -49,6 +65,7 @@ export interface StreamEvent {
   stop_reason?: string;
   model?: string;
   error?: string;
+  title?: string;
 }
 
 // A file attached as context for the next turn.
@@ -63,6 +80,11 @@ export type InboundMessage =
   | { type: "send"; text: string; mode: PermissionMode; provider: string; model: string; effort: Effort }
   | { type: "stop" }
   | { type: "newSession" }
+  | { type: "goHome" }
+  | { type: "showHistory" }
+  | { type: "openSession"; id: string }
+  | { type: "renameSession"; id: string; title: string }
+  | { type: "deleteSession"; id: string }
   | { type: "expand" }
   | { type: "pickFiles" }
   | { type: "addActiveFile" }
@@ -76,6 +98,11 @@ export type OutboundMessage =
   | { type: "auth"; authenticated: boolean }
   | { type: "models"; models: ModelInfo[] }
   | { type: "context"; files: ContextFile[] }
+  | { type: "activeFile"; canAdd: boolean }
+  | { type: "sessions"; sessions: SessionInfo[] }
+  | { type: "home" }
+  | { type: "sessionOpened"; session: SessionDetail }
+  | { type: "title"; id: string; title: string }
   | { type: "stream"; event: StreamEvent }
   | { type: "turnEnd" }
   | { type: "cleared" }

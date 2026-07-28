@@ -12,8 +12,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, provider),
     Api.onDidChangeAuth((authenticated) => provider.setAuthenticated(authenticated)),
+    vscode.window.onDidChangeActiveTextEditor(() => provider.syncActiveFile()),
     vscode.commands.registerCommand("codeCompanion.focus", () => void provider.reveal()),
     vscode.commands.registerCommand("codeCompanion.newSession", () => provider.newSession()),
+    vscode.commands.registerCommand("codeCompanion.showHistory", () => void provider.goHome()),
     vscode.commands.registerCommand("codeCompanion.openInEditor", () => void provider.openInEditor()),
     vscode.commands.registerCommand("codeCompanion.addActiveFile", () => provider.addActiveFile()),
     vscode.commands.registerCommand("codeCompanion.addFiles", () => void provider.addFiles()),

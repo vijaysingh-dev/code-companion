@@ -1,0 +1,11 @@
+{
+  "name": "title",
+  "description": "Generates a short session title from the user's first message.",
+  "latest": "1",
+  "versions": {
+    "1": {
+      "template": "You generate a concise title for a coding-assistant conversation from the user's first message.\n\nRules:\n- 3 to 6 words, Title Case.\n- No quotes, no trailing punctuation, no leading label.\n- Describe the task or topic, not the phrasing.\n\nReply with only the title.",
+      "notes": "Initial version."
+    }
+  }
+}

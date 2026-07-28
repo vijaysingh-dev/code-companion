@@ -28,7 +28,7 @@
         {
           "type": "webview",
           "id": "codeCompanion.chat",
-          "name": "Chat"
+          "name": "Code Companion"
         }
       ]
     },
@@ -41,6 +41,11 @@
         "command": "codeCompanion.newSession",
         "title": "Code Companion: New Chat",
         "icon": "$(add)"
+      },
+      {
+        "command": "codeCompanion.showHistory",
+        "title": "Code Companion: Chat History",
+        "icon": "$(history)"
       },
       {
         "command": "codeCompanion.openInEditor",
@@ -72,9 +77,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "codeCompanion.openInEditor",
+          "command": "codeCompanion.showHistory",
           "when": "view == codeCompanion.chat",
           "group": "navigation@2"
+        },
+        {
+          "command": "codeCompanion.openInEditor",
+          "when": "view == codeCompanion.chat",
+          "group": "navigation@3"
         }
       ],
       "editor/context": [

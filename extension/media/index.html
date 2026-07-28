@@ -2,8 +2,11 @@
 <!--
   Code Companion chat panel — the whole UI structure lives here as plain HTML.
   The {{...}} placeholders are filled in by src/panel/chatPanel.ts at load time.
-  Dynamic list items (pills, messages, tool calls) are declared once as <template>
-  blocks below and cloned by the component scripts in ./components/.
+  One top bar carries health · back · title (with inline edit). Two views —
+  home (session list) and chat (transcript) — are toggled by a body class
+  (view-home / view-chat); the composer is shared below both, so typing on the
+  home view starts a new chat. Dynamic list items and the custom pickers are
+  declared once as <template> blocks and cloned by the scripts in ./components/.
 -->
 <html lang="en">
   <head>
@@ -13,12 +16,22 @@
     <link rel="stylesheet" href="{{styleUri}}" />
     <title>Code Companion</title>
   </head>
-  <body>
-    <header class="cc-statusbar">
-      <span class="cc-title">Code Companion</span>
-      <div class="cc-statusbar-actions">
+  <body class="view-home">
+    <header class="cc-topbar">
+      <div class="cc-topbar-left">
+        <button class="cc-iconbtn cc-back" id="back" title="Back to chats">
+          <svg viewBox="0 0 16 16" width="17" height="17" aria-hidden="true"><path d="M13 8H3.5M7.5 4 3.5 8l4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <span class="cc-dot cc-unknown" id="status" title="Checking backend…"></span>
-        <button class="cc-iconbtn" id="expand" title="Open in editor">⤢</button>
+        <span class="cc-title" id="brand" title="Code Companion">Code Companion</span>
+        <input class="cc-title-input" id="title-input" hidden maxlength="255" aria-label="Chat title" />
+      </div>
+      <div class="cc-topbar-right">
+        <button class="cc-iconbtn cc-title-edit" id="title-edit" title="Rename chat">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" stroke="currentColor" stroke-width="0.6" stroke-linejoin="round" d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
+        </button>
+        <button class="cc-iconbtn cc-title-save" id="title-save" title="Save" hidden>✓</button>
+        <button class="cc-iconbtn cc-title-cancel" id="title-cancel" title="Cancel" hidden>✕</button>
       </div>
     </header>
 
@@ -27,50 +40,38 @@
     <div class="cc-login" id="login">
       <p class="cc-login-title">Sign in to Code Companion</p>
       <p class="cc-login-hint">Issue a token with <code>python -m app.cli.main token &lt;user&gt;</code>, then paste it.</p>
-      <button class="cc-send" id="login-btn">Sign In</button>
+      <button class="cc-send-text" id="login-btn">Sign In</button>
     </div>
 
+    <!-- ── Home view: the session list ──────────────────────────────────────── -->
+    <div class="cc-home" id="home">
+      <div class="cc-empty" id="home-empty">No chats yet. Type below to start one.</div>
+      <div class="cc-session-list" id="session-list"></div>
+    </div>
+
+    <!-- ── Chat view: transcript ────────────────────────────────────────────── -->
     <div class="cc-messages" id="messages">
-      <div class="cc-empty" id="empty">
-        Ask about your code. Add files as context with “+ Active file” or “@ Files”.
-      </div>
+      <div class="cc-empty" id="empty">Ask about your code. Add files with “+ Active file” or “Add Context”.</div>
     </div>
 
-    <div class="cc-composer">
+    <!-- ── Composer: shared by both views (home = start a new chat) ─────────── -->
+    <div class="cc-composer" id="composer">
       <div class="cc-context" id="context">
         <span id="context-pills"></span>
         <button class="cc-addbtn" data-action="add-active">+ Active file</button>
-        <button class="cc-addbtn" data-action="pick">@ Files</button>
+        <button class="cc-addbtn" data-action="pick">Add Context</button>
       </div>
 
-      <div class="cc-input-row">
+      <div class="cc-inputcard">
         <textarea class="cc-input" id="input" rows="1" placeholder="Ask Code Companion…"></textarea>
-      </div>
-
-      <div class="cc-controls">
-        <div class="cc-controls-group">
-          <label class="cc-select">
-            Model
-            <select id="model" title="Model"></select>
-          </label>
-          <label class="cc-select">
-            Effort
-            <select id="effort" title="Reasoning effort">
-              <option value="low">Low</option>
-              <option value="medium" selected>Medium</option>
-              <option value="high">High</option>
-              <option value="max">Max</option>
-            </select>
-          </label>
-        </div>
-        <div class="cc-controls-group">
-          <label class="cc-select">
-            Mode
-            <select id="mode" title="Permission mode">
-              <option value="local">Local</option>
-            </select>
-          </label>
-          <button class="cc-send" id="send">Send</button>
+        <div class="cc-inputbar">
+          <div class="cc-dd" id="dd-model"></div>
+          <div class="cc-dd" id="dd-effort"></div>
+          <div class="cc-dd" id="dd-mode"></div>
+          <button class="cc-send" id="send" title="Send">
+            <svg class="cc-ic-send" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 13V4M4 8l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="cc-ic-stop" viewBox="0 0 16 16" width="11" height="11" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5" fill="currentColor"/></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -80,15 +81,55 @@
       <span class="cc-pill"><span class="cc-pill-name"></span><span class="cc-pill-x">×</span></span>
     </template>
 
+    <template id="tpl-session">
+      <div class="cc-session">
+        <button class="cc-session-open" type="button">
+          <span class="cc-session-title"></span>
+          <span class="cc-session-time"></span>
+        </button>
+        <input class="cc-session-input" hidden maxlength="255" aria-label="Chat title" />
+        <div class="cc-session-actions">
+          <button class="cc-iconbtn cc-session-rename" type="button" title="Rename">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" stroke="currentColor" stroke-width="0.6" stroke-linejoin="round" d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
+          </button>
+          <button class="cc-iconbtn cc-session-delete" type="button" title="Delete">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+              <path fill="currentColor" d="M6.5 1.5h3l.5 1H13v1.5H3V2.5h2.5l.5-1zM4 5h8l-.7 9.2a.8.8 0 0 1-.8.8H5.5a.8.8 0 0 1-.8-.8L4 5zm2.5 1.5v6h1v-6h-1zm3 0v6h1v-6h-1z"/>
+            </svg>
+          </button>
+          <button class="cc-iconbtn cc-session-save" type="button" title="Save" hidden>✓</button>
+          <button class="cc-iconbtn cc-session-cancel" type="button" title="Cancel" hidden>✕</button>
+        </div>
+      </div>
+    </template>
+
+    <template id="tpl-dd">
+      <div class="cc-dd-inner">
+        <button class="cc-dd-btn" type="button">
+          <span class="cc-dd-label"></span>
+          <span class="cc-dd-value"></span>
+          <span class="cc-dd-caret">▾</span>
+        </button>
+        <div class="cc-dd-menu" role="menu" hidden></div>
+      </div>
+    </template>
+
+    <template id="tpl-dd-item">
+      <button class="cc-dd-item" type="button" role="menuitemradio">
+        <span class="cc-dd-icon"></span>
+        <span class="cc-dd-text"><span class="cc-dd-name"></span><span class="cc-dd-desc"></span></span>
+      </button>
+    </template>
+
     <template id="tpl-user">
-      <div class="cc-msg user"><div class="cc-msg-role">You</div><div class="cc-msg-body"></div></div>
+      <div class="cc-msg user"><div class="cc-msg-body"></div></div>
     </template>
 
     <template id="tpl-assistant">
-      <div class="cc-msg assistant"><div class="cc-msg-role">Companion</div><div class="cc-body"></div></div>
+      <div class="cc-msg assistant"><div class="cc-body"></div></div>
     </template>
 
-    <template id="tpl-text"><div class="cc-msg-body"></div></template>
+    <template id="tpl-text"><div class="cc-md"></div></template>
     <template id="tpl-thinking"><div class="cc-thinking"></div></template>
     <template id="tpl-tool"><div class="cc-tool"><span class="cc-tool-name"></span><span class="cc-tool-args"></span></div></template>
     <template id="tpl-error"><div class="cc-msg assistant"><div class="cc-error"></div></div></template>

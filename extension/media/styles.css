@@ -1,6 +1,7 @@
 /* Code Companion chat panel. Themed entirely off VS Code CSS variables so it
-   tracks the user's color theme. Layout: scrolling transcript + a docked
-   composer card (context pills, input, toolbar). */
+   tracks the user's color theme. Two views (home = session list, chat = transcript
+   + composer) are toggled by a body class; layout is a fixed top bar + optional
+   sub bar + the active view. */
 
 :root {
   --cc-gap: 8px;
@@ -22,14 +23,15 @@ body {
 body {
   display: flex;
   flex-direction: column;
+  min-width: 280px; /* keep the composer's inline controls on one row */
   color: var(--vscode-foreground);
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
   background: var(--vscode-editor-background);
 }
 
-/* ── Status bar (title · health · open-in-editor) ──────────────────────────── */
-.cc-statusbar {
+/* ── Top bar (health · logo · new/history/expand actions) ──────────────────── */
+.cc-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -39,32 +41,99 @@ body {
   border-bottom: 1px solid var(--cc-border);
   background: var(--vscode-sideBar-background, var(--vscode-editor-background));
 }
+/* Order: back · health · title. The title grows/ellipsizes; the edit button on
+   the right stays put. */
+.cc-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+/* The rename button + back arrow only make sense inside a chat. */
+body.view-home .cc-topbar-right,
+body.view-home .cc-back {
+  display: none;
+}
+/* Cancel the back button's right padding so back↔health matches health↔title (6px). */
+.cc-back {
+  padding-right: 3px;
+  margin-right: -3px;
+}
 .cc-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.8em;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--vscode-sideBarTitle-foreground, var(--vscode-foreground));
 }
-.cc-statusbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* In chat view the title is a real (case-preserving) chat name, not the logo. */
+body.view-chat .cc-title {
+  text-transform: none;
+  letter-spacing: 0;
+}
+/* Inline title editing: a compact input that replaces the title text. */
+.cc-title-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1px 4px;
+  font: inherit;
+  font-size: 0.85em;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--cc-border));
+  border-radius: 3px;
+}
+.cc-title-input:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+.cc-title-save {
+  color: var(--vscode-testing-iconPassed, #3fb950);
 }
 .cc-iconbtn {
-  padding: 2px 4px;
+  padding: 2px 5px;
   border: none;
   border-radius: 4px;
   background: transparent;
   color: var(--vscode-icon-foreground, var(--vscode-foreground));
   font-size: 1.05em;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  opacity: 0.8;
+  opacity: 0.85;
+  -webkit-text-stroke: 0.5px currentColor; /* thicker strokes at the same glyph size */
 }
 .cc-iconbtn:hover {
   opacity: 1;
   background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.15));
+}
+.cc-iconbtn svg {
+  display: block;
+}
+
+/* ── View toggling (body.view-home / body.view-chat) ───────────────────────── */
+/* Home (session list) and the transcript are swapped; the composer stays below both. */
+.cc-home,
+.cc-messages {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+body.view-home .cc-home {
+  display: flex;
+}
+body.view-chat .cc-messages {
+  display: flex;
 }
 
 /* ── Banner (errors / setup hints) ─────────────────────────────────────────── */
@@ -81,7 +150,6 @@ body {
 }
 
 /* ── Login gate ────────────────────────────────────────────────────────────── */
-/* Shown in place of the chat while signed out (body.signed-out, set from main.js). */
 .cc-login {
   display: none;
   flex-direction: column;
@@ -106,8 +174,10 @@ body {
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 0.9em;
 }
+body.signed-out .cc-home,
 body.signed-out .cc-messages,
 body.signed-out .cc-composer,
+body.signed-out .cc-topbar-right,
 body.signed-out .cc-banner {
   display: none;
 }
@@ -115,12 +185,98 @@ body.signed-out .cc-login {
   display: flex;
 }
 
-/* ── Transcript ────────────────────────────────────────────────────────────── */
-.cc-messages {
+/* ── Home view: session list ───────────────────────────────────────────────── */
+.cc-session-list {
   flex: 1;
   overflow-y: auto;
   padding: var(--cc-gap);
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cc-session {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--cc-radius);
+}
+.cc-session:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+  border-color: var(--cc-border);
+}
+.cc-session-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cc-gap);
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.cc-session-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-session-time {
+  flex: 0 0 auto;
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+}
+.cc-session-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 4px 0 4px 6px;
+  padding: 4px 6px;
+  font: inherit;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--cc-border));
+  border-radius: 3px;
+}
+.cc-session-input:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+.cc-session-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding-right: 6px;
+  opacity: 0; /* revealed on hover / while editing */
+}
+.cc-session:hover .cc-session-actions,
+.cc-session.editing .cc-session-actions {
+  opacity: 1;
+}
+.cc-session.editing .cc-session-open {
+  display: none;
+}
+.cc-session-actions .cc-iconbtn svg {
+  display: block;
+}
+.cc-session-delete:hover {
+  color: var(--vscode-errorForeground);
+}
+.cc-session-save {
+  color: var(--vscode-testing-iconPassed, #3fb950);
+}
+#home-empty.hidden {
+  display: none;
+}
+
+/* ── Transcript ────────────────────────────────────────────────────────────── */
+/* display + flex come from the view-toggling rules above; keep only the look here. */
+.cc-messages {
+  overflow-y: auto;
+  padding: var(--cc-gap);
   flex-direction: column;
   gap: 12px;
 }
@@ -133,16 +289,18 @@ body.signed-out .cc-login {
   line-height: 1.5;
 }
 
+/* No role labels: user turns sit as a bubble on the right, the companion's
+   reply flows full-width on the left. */
 .cc-msg {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.cc-msg-role {
-  font-size: 0.75em;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--vscode-descriptionForeground);
+.cc-msg.user {
+  align-items: flex-end;
+}
+.cc-msg.assistant {
+  align-items: stretch;
 }
 .cc-msg-body {
   white-space: pre-wrap;
@@ -150,10 +308,123 @@ body.signed-out .cc-login {
   line-height: 1.5;
 }
 .cc-msg.user .cc-msg-body {
+  max-width: 85%;
   background: var(--vscode-input-background);
   border: 1px solid var(--cc-border);
   border-radius: var(--cc-radius);
   padding: 8px 10px;
+}
+.cc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* ── Rendered Markdown (companion turns) ───────────────────────────────────── */
+.cc-md {
+  line-height: 1.55;
+  word-break: break-word;
+}
+.cc-md > :first-child {
+  margin-top: 0;
+}
+.cc-md > :last-child {
+  margin-bottom: 0;
+}
+.cc-md p {
+  margin: 0.5em 0;
+}
+.cc-md h1,
+.cc-md h2,
+.cc-md h3,
+.cc-md h4,
+.cc-md h5,
+.cc-md h6 {
+  margin: 0.9em 0 0.4em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.cc-md h1 {
+  font-size: 1.3em;
+}
+.cc-md h2 {
+  font-size: 1.18em;
+}
+.cc-md h3 {
+  font-size: 1.05em;
+}
+.cc-md h4,
+.cc-md h5,
+.cc-md h6 {
+  font-size: 1em;
+}
+.cc-md ul,
+.cc-md ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+.cc-md li {
+  margin: 0.2em 0;
+}
+.cc-md a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+.cc-md a:hover {
+  text-decoration: underline;
+}
+.cc-md blockquote {
+  margin: 0.5em 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--cc-border);
+  color: var(--vscode-descriptionForeground);
+}
+.cc-md hr {
+  border: none;
+  border-top: 1px solid var(--cc-border);
+  margin: 1em 0;
+}
+.cc-md code {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.9em;
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.16));
+}
+/* Fenced blocks: a scroll container so long code never widens the panel. */
+.cc-md pre.cc-code {
+  margin: 0.6em 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.12));
+}
+.cc-md pre.cc-code code {
+  display: block;
+  padding: 0;
+  background: none;
+  white-space: pre;
+  line-height: 1.45;
+}
+/* Git diff blocks (```diff): tint added / removed / hunk-header lines. */
+.cc-md pre.cc-diff code {
+  white-space: pre;
+}
+.cc-md pre.cc-diff span {
+  display: block;
+}
+.cc-md .cc-diff-add {
+  background: var(--vscode-diffEditor-insertedTextBackground, rgba(63, 185, 80, 0.18));
+  color: var(--vscode-testing-iconPassed, #3fb950);
+}
+.cc-md .cc-diff-del {
+  background: var(--vscode-diffEditor-removedTextBackground, rgba(248, 81, 73, 0.18));
+  color: var(--vscode-testing-iconFailed, #f85149);
+}
+.cc-md .cc-diff-meta {
+  color: var(--vscode-descriptionForeground);
 }
 
 .cc-thinking {
@@ -199,7 +470,6 @@ body.signed-out .cc-login {
   gap: 6px;
   align-items: center;
 }
-/* the pills wrapper is transparent to layout so pills flow in the flex row */
 #context-pills {
   display: contents;
 }
@@ -238,37 +508,175 @@ body.signed-out .cc-login {
 .cc-addbtn:hover {
   background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.15));
 }
+.cc-addbtn.hidden {
+  display: none;
+}
 
-/* Input row */
-.cc-input-row {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--cc-gap);
+/* Input card: textarea with the model/effort/mode selects + send docked below it */
+.cc-inputcard {
+  border: 1px solid var(--vscode-input-border, var(--cc-border));
+  border-radius: var(--cc-radius);
+  background: var(--vscode-input-background);
+}
+.cc-inputcard:focus-within {
+  outline: 1px solid var(--vscode-focusBorder);
 }
 .cc-input {
-  flex: 1;
+  display: block;
+  width: 100%;
   resize: none;
-  min-height: 38px;
+  min-height: 34px;
   max-height: 180px;
   padding: 8px;
-  border-radius: var(--cc-radius);
+  border: none;
+  background: transparent;
   color: var(--vscode-input-foreground);
-  background: var(--vscode-input-background);
-  border: 1px solid var(--vscode-input-border, var(--cc-border));
   font-family: inherit;
   font-size: inherit;
 }
 .cc-input:focus {
-  outline: 1px solid var(--vscode-focusBorder);
+  outline: none;
+}
+.cc-inputbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 6px;
+}
+
+/* ── Custom pickers (Model / Effort / Mode) ────────────────────────────────── */
+.cc-dd {
+  min-width: 0; /* allow the button to shrink and ellipsize on a narrow panel */
+}
+/* Model shrinks first (its label is longest); Effort stays beside it. */
+#dd-model {
+  flex: 0 1 auto;
+}
+/* Push Mode (and the send button) to the right, away from Model + Effort. */
+#dd-mode {
+  margin-left: auto;
+}
+.cc-dd-inner {
+  position: relative;
+}
+.cc-dd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 6px;
+  border: 1px solid var(--vscode-dropdown-border, var(--cc-border));
+  border-radius: 4px;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  font-size: 0.8em;
+  cursor: pointer;
+}
+.cc-dd.disabled .cc-dd-btn {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.cc-dd-label {
+  flex: 0 0 auto;
+  color: var(--vscode-descriptionForeground);
+}
+.cc-dd-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-dd-caret {
+  flex: 0 0 auto;
+  opacity: 0.7;
+}
+.cc-dd-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  min-width: 150px;
+  max-width: min(300px, 92vw); /* never wider than the panel, so it can't clip */
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--cc-border);
+  border-radius: 6px;
+  background: var(--vscode-dropdown-background, var(--vscode-editor-background));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.cc-dd-menu.align-right {
+  left: auto;
+  right: -40px; /* nudge the right-anchored Mode menu back toward the panel edge */
+}
+.cc-dd-menu[hidden] {
+  display: none;
+}
+.cc-dd-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.cc-dd-item:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+}
+.cc-dd-item[aria-checked="true"] {
+  background: var(--vscode-list-activeSelectionBackground, rgba(128, 128, 128, 0.22));
+}
+.cc-dd-icon {
+  flex: 0 0 auto;
+  width: 1.2em;
+  text-align: center;
+  opacity: 0.9;
+}
+.cc-dd-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.cc-dd-name {
+  font-size: 0.9em;
+}
+.cc-dd-desc {
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
 }
 .cc-send {
-  height: 38px;
-  padding: 0 14px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
   border: none;
-  border-radius: var(--cc-radius);
+  border-radius: 50%;
   cursor: pointer;
   color: var(--vscode-button-foreground);
   background: var(--vscode-button-background);
+}
+.cc-send svg {
+  display: block;
+}
+.cc-send .cc-ic-stop {
+  display: none;
+}
+.cc-send.stop .cc-ic-send {
+  display: none;
+}
+.cc-send.stop .cc-ic-stop {
+  display: block;
 }
 .cc-send:hover {
   background: var(--vscode-button-hoverBackground);
@@ -278,43 +686,23 @@ body.signed-out .cc-login {
   background: var(--vscode-button-secondaryBackground, var(--vscode-button-background));
 }
 
-/* Controls row: model + effort (left), mode + Send (right) */
-.cc-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--cc-gap);
+/* Text button (login) */
+.cc-send-text {
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--cc-radius);
+  cursor: pointer;
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
 }
-.cc-controls-group {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--cc-gap);
-}
-.cc-select {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.8em;
-  color: var(--vscode-descriptionForeground);
-}
-.cc-select select {
-  color: var(--vscode-dropdown-foreground);
-  background: var(--vscode-dropdown-background);
-  border: 1px solid var(--vscode-dropdown-border, var(--cc-border));
-  border-radius: 4px;
-  padding: 2px 4px;
-  font-size: inherit;
-}
-.cc-select select:disabled {
-  opacity: 0.5;
+.cc-send-text:hover {
+  background: var(--vscode-button-hoverBackground);
 }
 
-/* Backend health dot — sits in the status bar next to the actions. */
+/* Backend health dot — sits in the top bar next to the logo. */
 .cc-dot {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex: 0 0 auto;
   background: var(--vscode-descriptionForeground);

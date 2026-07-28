@@ -32,6 +32,22 @@ class SessionService:
             raise ResourceNotFoundError("ChatSession", details={"session_id": session_id})
         return row
 
+    async def update_title(self, user_id: str, session_id: str, title: str) -> ChatSession:
+        """Set a session's title, scoped to its owner (404s otherwise via get)."""
+        row = await self.get(user_id, session_id)
+        row.title = title
+        await self._session.commit()
+        await self._session.refresh(row)
+        logger.info("Updated title for session %s", session_id)
+        return row
+
+    async def set_title(self, session_id: str, title: str) -> None:
+        """Internal, unscoped title write (owner already verified upstream)."""
+        row = await self._session.get(ChatSession, session_id)
+        if row is not None:
+            row.title = title
+            await self._session.commit()
+
     async def list_all(self, user_id: str) -> list[ChatSession]:
         result = await self._session.execute(
             select(ChatSession).where(ChatSession.user_id == user_id).order_by(ChatSession.updated_at.desc())

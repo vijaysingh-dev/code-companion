@@ -1,6 +1,7 @@
-// Selectors row. The <select>s and their static options (mode, effort) live in
-// index.html; this fills the model list and reads the current choice. Effort is
-// disabled when the chosen model can't reason.
+// Composer pickers row: Model / Effort / Mode as custom dropdowns, plus the
+// backend health dot. Effort is disabled when the chosen model can't reason.
+
+import { createDropdown } from "./dropdown.js";
 
 const HEALTH = {
   unknown: ["cc-unknown", "Checking backend…"],
@@ -8,29 +9,58 @@ const HEALTH = {
   unreachable: ["cc-unreachable", "Backend unreachable"],
 };
 
-export function createToolbar({ mode, model, effort, status }) {
+const EFFORT_OPTIONS = [
+  { value: "low", name: "Low" },
+  { value: "medium", name: "Medium" },
+  { value: "high", name: "High" },
+  { value: "max", name: "Max" },
+];
+
+const MODE_OPTIONS = [
+  { value: "ask", name: "Ask", desc: "Answers only — no context", icon: "?" },
+  { value: "plan", name: "Plan", desc: "Reads & plans — no edits", icon: "◇" },
+  { value: "agent", name: "Agent", desc: "Edits files; asks before risky commands", icon: "◆" },
+];
+
+export function createToolbar({ modelEl, effortEl, modeEl, status }) {
   let models = [];
 
-  model.addEventListener("change", syncEffort);
+  const model = createDropdown({ container: modelEl, label: "", onChange: syncEffort });
+  const effort = createDropdown({ container: effortEl, label: "Effort" });
+  const mode = createDropdown({ container: modeEl, label: "Mode", align: "right" });
+
+  effort.setOptions(EFFORT_OPTIONS);
+  effort.setValue("medium");
+  mode.setOptions(MODE_OPTIONS);
+  mode.setValue("agent");
 
   function setModels(next) {
     models = next;
-    model.replaceChildren(...models.map((m, i) => new Option(`${m.provider_name} · ${m.model}`, String(i))));
+    model.setOptions(models.map((m, i) => ({ value: String(i), name: `${m.provider_name} ${m.model}` })));
     syncEffort();
   }
 
   function syncEffort() {
-    const chosen = models[Number(model.value)];
-    effort.disabled = !chosen || !chosen.supports_effort;
+    const chosen = models[Number(model.getValue())];
+    effort.setDisabled(!chosen || !chosen.supports_effort);
+  }
+
+  // Reflect an opened session's provider/model in the picker (no-op if not listed).
+  function select(providerId, modelId) {
+    const index = models.findIndex((m) => m.provider === providerId && m.model === modelId);
+    if (index >= 0) {
+      model.setValue(String(index));
+      syncEffort();
+    }
   }
 
   function getSelection() {
-    const chosen = models[Number(model.value)];
+    const chosen = models[Number(model.getValue())];
     return {
-      mode: mode.value,
+      mode: mode.getValue(),
       provider: chosen ? chosen.provider : "",
       model: chosen ? chosen.model : "",
-      effort: effort.value,
+      effort: effort.getValue(),
     };
   }
 
@@ -40,5 +70,5 @@ export function createToolbar({ mode, model, effort, status }) {
     status.title = title;
   }
 
-  return { setModels, getSelection, setHealth };
+  return { setModels, getSelection, setHealth, select };
 }

@@ -30,8 +30,8 @@ export function createComposer({ input, button, onSend, onStop }) {
 
   function setStreaming(next) {
     streaming = next;
-    button.textContent = next ? "Stop" : "Send";
-    button.classList.toggle("stop", next);
+    button.title = next ? "Stop" : "Send";
+    button.classList.toggle("stop", next); // CSS swaps the arrow/stop SVGs
   }
 
   function focus() {
