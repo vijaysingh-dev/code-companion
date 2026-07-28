@@ -30,7 +30,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
-class Session(Base):
+class ChatSession(Base):
     """A conversation thread owned by a user. Holds the currently selected model."""
 
     __tablename__ = "sessions"

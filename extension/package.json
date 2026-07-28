@@ -13,7 +13,88 @@
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
-  "contributes": {},
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codeCompanion",
+          "title": "Code Companion",
+          "icon": "$(comment-discussion)"
+        }
+      ]
+    },
+    "views": {
+      "codeCompanion": [
+        {
+          "type": "webview",
+          "id": "codeCompanion.chat",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "codeCompanion.focus",
+        "title": "Code Companion: Open Chat"
+      },
+      {
+        "command": "codeCompanion.newSession",
+        "title": "Code Companion: New Chat",
+        "icon": "$(add)"
+      },
+      {
+        "command": "codeCompanion.openInEditor",
+        "title": "Code Companion: Open Chat in Editor",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "codeCompanion.addActiveFile",
+        "title": "Code Companion: Add Active File to Context"
+      },
+      {
+        "command": "codeCompanion.addFiles",
+        "title": "Code Companion: Add Files to Context…"
+      },
+      {
+        "command": "codeCompanion.login",
+        "title": "Code Companion: Sign In"
+      },
+      {
+        "command": "codeCompanion.logout",
+        "title": "Code Companion: Sign Out"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "codeCompanion.newSession",
+          "when": "view == codeCompanion.chat",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codeCompanion.openInEditor",
+          "when": "view == codeCompanion.chat",
+          "group": "navigation@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "codeCompanion.addActiveFile",
+          "group": "codeCompanion"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Code Companion",
+      "properties": {
+        "codeCompanion.backendUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Base URL of the Code Companion FastAPI backend."
+        }
+      }
+    }
+  },
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",

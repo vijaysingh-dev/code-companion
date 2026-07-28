@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import authenticated
 from app.api.deps import get_db
 from app.models.schema import CreateSessionRequest, MessageInfo, SessionDetail, SessionInfo, SessionsResponse
-from app.models.tables import Session, SessionMessage
+from app.models.tables import ChatSession, SessionMessage
 from app.services import catalog
 from app.services.session import SessionService
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _info(row: Session) -> SessionInfo:
+def _info(row: ChatSession) -> SessionInfo:
     return SessionInfo(
         id=row.id,
         provider=row.provider,

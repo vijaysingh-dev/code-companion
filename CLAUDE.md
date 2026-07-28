@@ -27,7 +27,7 @@ app/
   migrations/        Alembic (async env.py); versions/ holds revisions
   services/          domain logic lives here, not in views (chat, catalog, user, session)
   models/schema.py   pydantic request/response (wire) models
-  models/tables.py   SQLAlchemy ORM tables (User, Session, SessionMessage) — distinct from wire models
+  models/tables.py   SQLAlchemy ORM tables (User, ChatSession, SessionMessage) — distinct from wire models
   cli/               typer admin CLI (`python -m app.cli.main`) — runs Application in CLI mode
   middleware/        request logging + exception handlers
 config.yaml          LLM catalog (gitignored — holds keys); commit config.example.yaml
@@ -42,7 +42,7 @@ extension/           VS Code extension (own package.json, tsconfig, .vscode/)
 - **Service layer**: domain logic goes in `app/services/`; routers only parse → call service → shape response.
 - **API is unversioned** — no `/v1`. Add routers to `app/api/router.py`; they mount under `settings.API_PREFIX` (`/api`).
 - **DB**: async SQLAlchemy 2.0. ORM tables in `app/models/tables.py` (inherit `Base` from `app.core.db`), never mixed with pydantic wire models in `schema.py`. Access via `Application.sessionmaker`. Schema changes go through Alembic (`migrations/`, async `env.py`, url from `settings.DATABASE_URL`); apply with `python -m app.cli.main migrate`. DB-touching CLI commands fail fast unless the schema is at head.
-- **Sessions**: conversation history is server-side (not client-supplied). `ChatRequest` = `session_id` + `message` (+ optional `context`/`provider`/`model`/`effort`). `POST /api/chat` loads the thread, streams, and persists the user + assistant turns; history is compacted server-side (a char budget for now). Session CRUD lives at `/api/sessions` (all authenticated, scoped to the caller). `SessionService` owns persistence + domain-message conversion.
+- **Sessions**: conversation history is server-side (not client-supplied). `ChatRequest` = `session_id` + `message` (+ optional `context`/`provider`/`model`/`effort`). `POST /api/chat` loads the thread, streams, and persists the user + assistant turns; history is compacted server-side (a char budget for now). ChatSession CRUD lives at `/api/sessions` (all authenticated, scoped to the caller). `SessionService` owns persistence + domain-message conversion.
 - **Auth**: stateless signed JWT (`app.core.security`). The CLI issues tokens (`SECRET_KEY`, `TOKEN_TTL_DAYS`) after confirming the user id exists; request-time verification stays DB-free (signature + expiry only). `SECRET_KEY` must be ≥32 bytes; rotating it invalidates all tokens (the only revoke). Protect an endpoint with `@authenticated` (`app/api/auth.py`) — sets `request.state.user_id`; a temporary bridge until an AuthMiddleware.
 - **AppMode**: one `Application` serves both entrypoints. APP starts the HTTP client + DB; CLI starts DB only. Pass the mode to `setup_logging` and construct via `init_api_app()` / `get_cli_app()`.
 - **Comments**: default to none. Add a concise one-liner only where intent isn't obvious from the code, stating *why*, never narrating *what*. Future work as `# TODO: <what>`.

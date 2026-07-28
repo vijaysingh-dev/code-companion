@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<!--
+  Code Companion chat panel — the whole UI structure lives here as plain HTML.
+  The {{...}} placeholders are filled in by src/panel/chatPanel.ts at load time.
+  Dynamic list items (pills, messages, tool calls) are declared once as <template>
+  blocks below and cloned by the component scripts in ./components/.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="{{csp}}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{{styleUri}}" />
+    <title>Code Companion</title>
+  </head>
+  <body>
+    <header class="cc-statusbar">
+      <span class="cc-title">Code Companion</span>
+      <div class="cc-statusbar-actions">
+        <span class="cc-dot cc-unknown" id="status" title="Checking backend…"></span>
+        <button class="cc-iconbtn" id="expand" title="Open in editor">⤢</button>
+      </div>
+    </header>
+
+    <div class="cc-banner" id="banner"></div>
+
+    <div class="cc-login" id="login">
+      <p class="cc-login-title">Sign in to Code Companion</p>
+      <p class="cc-login-hint">Issue a token with <code>python -m app.cli.main token &lt;user&gt;</code>, then paste it.</p>
+      <button class="cc-send" id="login-btn">Sign In</button>
+    </div>
+
+    <div class="cc-messages" id="messages">
+      <div class="cc-empty" id="empty">
+        Ask about your code. Add files as context with “+ Active file” or “@ Files”.
+      </div>
+    </div>
+
+    <div class="cc-composer">
+      <div class="cc-context" id="context">
+        <span id="context-pills"></span>
+        <button class="cc-addbtn" data-action="add-active">+ Active file</button>
+        <button class="cc-addbtn" data-action="pick">@ Files</button>
+      </div>
+
+      <div class="cc-input-row">
+        <textarea class="cc-input" id="input" rows="1" placeholder="Ask Code Companion…"></textarea>
+      </div>
+
+      <div class="cc-controls">
+        <div class="cc-controls-group">
+          <label class="cc-select">
+            Model
+            <select id="model" title="Model"></select>
+          </label>
+          <label class="cc-select">
+            Effort
+            <select id="effort" title="Reasoning effort">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="max">Max</option>
+            </select>
+          </label>
+        </div>
+        <div class="cc-controls-group">
+          <label class="cc-select">
+            Mode
+            <select id="mode" title="Permission mode">
+              <option value="local">Local</option>
+            </select>
+          </label>
+          <button class="cc-send" id="send">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Templates: cloned by the component scripts ─────────────────────── -->
+    <template id="tpl-pill">
+      <span class="cc-pill"><span class="cc-pill-name"></span><span class="cc-pill-x">×</span></span>
+    </template>
+
+    <template id="tpl-user">
+      <div class="cc-msg user"><div class="cc-msg-role">You</div><div class="cc-msg-body"></div></div>
+    </template>
+
+    <template id="tpl-assistant">
+      <div class="cc-msg assistant"><div class="cc-msg-role">Companion</div><div class="cc-body"></div></div>
+    </template>
+
+    <template id="tpl-text"><div class="cc-msg-body"></div></template>
+    <template id="tpl-thinking"><div class="cc-thinking"></div></template>
+    <template id="tpl-tool"><div class="cc-tool"><span class="cc-tool-name"></span><span class="cc-tool-args"></span></div></template>
+    <template id="tpl-error"><div class="cc-msg assistant"><div class="cc-error"></div></div></template>
+
+    <script type="module" nonce="{{nonce}}" src="{{scriptUri}}"></script>
+  </body>
+</html>

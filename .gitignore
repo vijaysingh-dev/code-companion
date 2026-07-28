@@ -144,7 +144,8 @@ venv.bak/
 .archive/
 logs/
 
-extension.node_modules/
+extension/node_modules/
+extension/out/
 
 # SQLite dev database
 *.db
